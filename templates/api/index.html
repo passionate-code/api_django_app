@@ -1,0 +1,242 @@
+{% extends "app/admin_base.html" %}
+{% block title %}Halaman Utama{% endblock %}
+{% block navbar %}
+  <nav class="main-header navbar navbar-expand navbar-white navbar-light">
+    <ul class="navbar-nav">
+      <li class="nav-item">
+        <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a>
+      </li>
+      <li class="nav-item d-none d-sm-inline-block">
+        <a class="nav-link" href="{% url 'app:data' %}" >Kemasukan Data</a>
+      </li>
+      <li class="nav-item d-none d-sm-inline-block">
+        <a class="nav-link" href="{% url 'app:sedar' %}" >Peta Sedar</a>
+      </li>
+    </ul>
+    <!-- Right navbar links -->
+    <ul class="navbar-nav ml-auto">
+      <li class="nav-item">
+        <a class="nav-link float-right" href="{% url 'app:register' %}">Pendaftaran</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link float-right" href="{% url 'app:logout' %}">Log Keluar</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="#">Selamat Datang {{user.username}}</a>
+      </li>
+    </ul>
+  </nav>
+{% endblock %}
+{% block content %}
+<!-- open row -->
+<br/>
+<div class="row">
+  <!-- open column -->
+  <div class="col-lg-12">
+    <div class="card card-success">
+    <div class="card-header">
+    <h3 class="card-title">Carta Bulanan</h3>
+    <div class="card-tools">
+      <button type="button" class="btn btn-tool" data-card-widget="collapse"><i class="fas fa-minus"></i></button>
+      <button type="button" class="btn btn-tool" data-card-widget="remove"><i class="fas fa-times"></i></button>
+    </div>
+    </div>
+    <div class="card-body">
+      <div class="d-flex justify-content-center" id="bulanan-input">
+      </div>
+      <div class="chart" id="date-chart">
+          <div class="d-flex justify-content-center">
+            <div class="spinner-border text-success" role="status">
+              <span class="sr-only">Loading...</span>
+            </div>
+          </div>
+          <p class="text-center"><strong>Carta sedang dijana.</strong></p>
+      </div>
+    </div>
+    </div>
+  </div>
+  <!-- close column -->
+</div>
+<!-- close row -->
+<!-- open row -->
+<br/>
+<div class="row">
+  <!-- open column -->
+  <div class="col-lg-12">
+    <div class="card card-danger">
+    <div class="card-header">
+    <h3 class="card-title">Carta Status</h3>
+    <div class="card-tools">
+      <button type="button" class="btn btn-tool" data-card-widget="collapse"><i class="fas fa-minus"></i></button>
+      <button type="button" class="btn btn-tool" data-card-widget="remove"><i class="fas fa-times"></i></button>
+    </div>
+    </div>
+    <div class="card-body">
+      <div class="d-flex justify-content-center" id="statusks-input">
+      </div>
+      <div class="chart" id="statusks-chart">
+          <div class="d-flex justify-content-center">
+            <div class="spinner-border text-danger" role="status">
+              <span class="sr-only">Pemuatan...</span>
+            </div>
+          </div>
+          <p class="text-center"><strong>Carta sedang dijana.</strong></p>
+      </div>
+    </div>
+    </div>
+  </div>
+  <!-- close column -->
+</div>
+<!-- close row -->
+<!-- open row -->
+<br/>
+<div class="row">
+  <!-- open column -->
+  <div class="col-lg-12">
+    <div class="card card-danger">
+    <div class="card-header">
+    <h3 class="card-title">Carta Status</h3>
+    <div class="card-tools">
+      <button type="button" class="btn btn-tool" data-card-widget="collapse"><i class="fas fa-minus"></i></button>
+      <button type="button" class="btn btn-tool" data-card-widget="remove"><i class="fas fa-times"></i></button>
+    </div>
+    </div>
+    <div class="card-body">
+      <div class="d-flex justify-content-center" id="statusk-input">
+      </div>
+      <div class="chart" id="statuskes-chart">
+        <div class="d-flex justify-content-center">
+          <div class="spinner-border text-danger" role="status">
+            <span class="sr-only">Pemuatan...</span>
+          </div>
+        </div>
+        <p class="text-center"><strong>Carta sedang dijana.</strong></p>
+      </div>
+    </div>
+    </div>
+  </div>
+  <!-- close column -->
+</div>
+<!-- close row -->
+<!-- open row -->
+<br/>
+<div class="row">
+  <!-- open column -->
+  <div class="col-lg-12">
+    <div class="card card-danger">
+    <div class="card-header">
+    <h3 class="card-title">Carta Barang</h3>
+    <div class="card-tools">
+      <button type="button" class="btn btn-tool" data-card-widget="collapse"><i class="fas fa-minus"></i></button>
+      <button type="button" class="btn btn-tool" data-card-widget="remove"><i class="fas fa-times"></i></button>
+    </div>
+    </div>
+    <div class="card-body">
+      <div class="d-flex justify-content-center" id="rampasangram-input">
+      </div>
+      <div class="chart" id="rampasangram-chart">
+        <div class="d-flex justify-content-center">
+          <div class="spinner-border text-danger" role="status">
+            <span class="sr-only">Pemuatan...</span>
+          </div>
+        </div>
+        <p class="text-center"><strong>Carta sedang dijana.</strong></p>
+      </div>
+    </div>
+    </div>
+  </div>
+  <!-- close column -->
+</div>
+<!-- close row -->
+<!-- open row -->
+<br/>
+<div class="row">
+  <!-- open column -->
+  <div class="col-lg-12">
+    <div class="card card-danger">
+    <div class="card-header">
+    <h3 class="card-title">Carta Barang</h3>
+    <div class="card-tools">
+      <button type="button" class="btn btn-tool" data-card-widget="collapse"><i class="fas fa-minus"></i></button>
+      <button type="button" class="btn btn-tool" data-card-widget="remove"><i class="fas fa-times"></i></button>
+    </div>
+    </div>
+    <div class="card-body">
+      <div class="d-flex justify-content-center" id="rampasanliter-input">
+      </div>
+      <div class="chart" id="rampasanliter-chart">
+        <div class="d-flex justify-content-center">
+          <div class="spinner-border text-danger" role="status">
+            <span class="sr-only">Pemuatan...</span>
+          </div>
+        </div>
+        <p class="text-center"><strong>Carta sedang dijana.</strong></p>
+      </div>
+    </div>
+    </div>
+  </div>
+  <!-- close column -->
+</div>
+<!-- close row -->
+<!-- open row -->
+<br/>
+<div class="row">
+  <!-- open column -->
+  <div class="col-lg-12">
+    <div class="card card-danger">
+    <div class="card-header">
+    <h3 class="card-title">Carta Barang</h3>
+    <div class="card-tools">
+      <button type="button" class="btn btn-tool" data-card-widget="collapse"><i class="fas fa-minus"></i></button>
+      <button type="button" class="btn btn-tool" data-card-widget="remove"><i class="fas fa-times"></i></button>
+    </div>
+    </div>
+    <div class="card-body">
+      <div class="d-flex justify-content-center" id="rampasanpokok-input">
+      </div>
+      <div class="chart" id="rampasanpokok-chart">
+        <div class="d-flex justify-content-center">
+          <div class="spinner-border text-danger" role="status">
+            <span class="sr-only">Pemuatan...</span>
+          </div>
+        </div>
+        <p class="text-center"><strong>Carta sedang dijana.</strong></p>
+      </div>
+    </div>
+    </div>
+  </div>
+  <!-- close column -->
+</div>
+<!-- close row -->
+<!-- open row -->
+<br/>
+<div class="row">
+  <!-- open column -->
+  <div class="col-lg-12">
+    <div class="card card-danger">
+    <div class="card-header">
+    <h3 class="card-title">Carta Barang</h3>
+    <div class="card-tools">
+      <button type="button" class="btn btn-tool" data-card-widget="collapse"><i class="fas fa-minus"></i></button>
+      <button type="button" class="btn btn-tool" data-card-widget="remove"><i class="fas fa-times"></i></button>
+    </div>
+    </div>
+    <div class="card-body">
+      <div class="d-flex justify-content-center" id="rampasankeping-input">
+      </div>
+      <div class="chart" id="rampasankeping-chart">
+        <div class="d-flex justify-content-center">
+          <div class="spinner-border text-danger" role="status">
+            <span class="sr-only">Pemuatan...</span>
+          </div>
+        </div>
+        <p class="text-center"><strong>Carta sedang dijana.</strong></p>
+      </div>
+    </div>
+    </div>
+  </div>
+  <!-- close column -->
+</div>
+<!-- close row -->
+{% include "app/chartjs.html" %}
+{% endblock %}

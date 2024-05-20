@@ -1,0 +1,653 @@
+<script>
+  $(document).ready(function() {
+    const get_data = async (table,next) => {
+      let url = next;
+      if (next === null) {
+        switch (table) {
+          case "rawtang":
+            url = "{% url 'app:rawtang-list' %}";
+            break;
+          case "rawkes":
+            url = "{% url 'app:rawkes-list' %}";
+            break;
+          case "rawramp":
+            url = "{% url 'app:rawramp-list' %}";
+            break;
+          case "chartraw":
+            url = "{% url 'app:chartrawlist' %}";
+            break;
+        }
+      }
+      let data = await $.get(url);
+      return data;
+    }
+    const get_iter = async (table) => {
+      let data_url = "";
+      let data_arr_iter = [];
+      while (data_url !== null) {
+        let data;
+        if (data_url == "") {
+          data = await get_data(table,null);
+        } else {
+          data = await get_data(null,data_url);
+        }
+        if (table != "chartraw") {
+          let data_arr = data.results;
+          if (data_arr !== undefined) {
+            data_arr_iter.push(...data_arr);
+            data_url = data.next;
+          } else {
+            break;
+          }
+        } else {
+          data_arr_iter.push(data[0]);
+          break;
+        }
+      }
+      return data_arr_iter;
+    }
+    const counting_months = async (table,fromdate,todate) => {
+      const data_dict = {"Tangkapan":rawtang_data,"Kes":rawkes_data,"Rampasan":rawramp_data,"LLPK":rawtang_data};
+      const months_counter = Array(12).fill(0);
+      let data_arr = await data_dict[table];
+      data_arr.forEach( ({Tarikh_KS,No_KS}) => {
+        if (fromdate === undefined) {
+          if (table == "LLPK") {
+            if (/LLPK\d+/.test(No_KS)) {
+              months_counter[new Date(Tarikh_KS).getMonth()] += 1;
+            }
+          } else {
+            months_counter[new Date(Tarikh_KS).getMonth()] += 1;
+          }
+        } else {
+          tarikh = moment(Tarikh_KS,'YYYY-MM-DD');
+          if (fromdate <= tarikh && tarikh <= todate) {
+            if (table == "LLPK") {
+              if (/LLPK\d+/.test(No_KS)) {
+                months_counter[new Date(Tarikh_KS).getMonth()] += 1;
+              }
+            } else {
+              months_counter[new Date(Tarikh_KS).getMonth()] += 1;
+            }
+          }
+        }
+      });
+      return months_counter;
+    }
+    const counting_kw = async (kw,fromdate,todate) => {
+      const counter = {};
+      const incrementor = (ele) => {
+        let loop_kw = ele[kw];
+        if (loop_kw === null) {
+          loop_kw = "Tiada Data";
+        } else if (loop_kw === "Fail") {
+          loop_kw = "Gagal";
+        }
+        let types = Object.keys(counter);
+        if (types.includes(loop_kw)) {
+          counter[loop_kw] += 1;
+        } else {
+          counter[loop_kw] = 1;
+        }
+      }
+      for (let i=0; i<tables.length; i++) {
+        data_arr = await tables[i];
+        data_arr.forEach((e) => {
+          if (fromdate === undefined) {
+            incrementor(e);
+          } else {
+            let tarikh = e["Tarikh_KS"];
+            tarikh = moment(tarikh,'YYYY-MM-DD');
+            if (fromdate <= tarikh && tarikh <= todate) {
+              incrementor(e);
+            }
+          }
+        });
+      }
+      return counter;
+    }
+    const counting_rampasan = async (fromdate,todate) => {
+      const incrementor = (k1,k2,k3) => {
+        let types = Object.keys(counter);
+        let rampasan = `${k1}:${k3.toLowerCase()}`;
+        if (types.includes(rampasan)) {
+          counter[rampasan] += parseFloat(k2);
+        } else {
+          counter[rampasan] = parseFloat(k2);
+        }
+      }
+      const counter = {};
+      data_arr = await tables[2];
+      data_arr.forEach(({JD,Kuantiti,Unit,Tarikh_KS}) => {
+        if (fromdate === undefined) {
+          if (JD === null) {
+            JD = "Tiada Data";
+          }
+          if (Kuantiti === null) {
+            Kuantiti = 0;
+          }
+          if (Unit === null) {
+            Unit = "tiadaunit";
+          }
+          if (Kuantiti != 0) {
+            incrementor(JD,Kuantiti,Unit);
+          }
+        } else {
+          tarikh = moment(Tarikh_KS,'YYYY-MM-DD');
+          if (fromdate <= tarikh && tarikh <= todate) {
+            if (JD === null) {
+              JD = "Tiada Data";
+            }
+            if (Kuantiti === null) {
+              Kuantiti = 0;
+            }
+            if (Unit === null) {
+              Unit = "tiadaunit";
+            }
+            if (Kuantiti != 0) {
+              incrementor(JD,Kuantiti,Unit);
+            }
+          }
+        }
+      });
+      return counter;
+    }
+    const get_labels_numbers = async (kw,fromdate,todate) => {
+      let counter;
+      if (["Status_Kes","Status_KS"].includes(kw)) {
+        if (fromdate === undefined) {
+          counter = await counting_kw(kw);
+        } else {
+          counter = await counting_kw(kw,fromdate,todate);
+        }
+      } else if (kw.includes("BrgRamp")) {
+        if (fromdate === undefined) {
+          counter = await counting_rampasan();
+        } else {          
+          counter = await counting_rampasan(fromdate,todate);
+        }
+      } else if (kw.includes("Bulanan")) {
+        if (fromdate === undefined) {
+          counter = await counting_months(kw.split("-")[1]);
+          return counter;
+        } else {          
+          counter = await counting_months(kw.split("-")[1],fromdate,todate);
+          return counter;
+        }        
+      }
+      let labels = Object.keys(counter);
+      let numbers = Object.values(counter);
+      return [labels,numbers];
+    }
+    const gen_datasets = (label_arr,num_arr,colour_arr,kw) => {
+      let labels = [];
+      let datasets = [];
+      label_arr.forEach((ele,i) => {
+        if (ele.includes(kw)) {
+          let label = ele.split(":")[0];
+          labels.push(label);
+          let colour = colour_arr[i];
+          let no = num_arr[i];
+          let dataset = {"label":label,"backgroundColor":colour,"borderColor":"#000000","borderWidth":2,"data":no};
+          datasets.push(dataset);
+        }
+      });
+      datasets.forEach((ele,i,arr) => {
+        let data = new Array(labels.length).fill(null);
+        let no = ele.data;
+        data[i] = no;
+        ele.data = data;
+        arr[i] = ele;
+      });
+      return [labels,datasets];
+    }
+    const chart_updater = (labels,numbers,ctx,arrng) => {
+      if (arrng === undefined) {
+        ctx.data.labels = labels;
+        ctx.data.datasets[0].data = numbers;
+        ctx.update();
+      } else if (arrng.split("-")[0] == "1D") {
+        let unit = arrng.split("-")[1];
+        let rampasan_colours = get_colors(labels.length);
+        let [l,datasets] = gen_datasets(labels,numbers,rampasan_colours,unit);
+        ctx.data.labels = l;
+        ctx.data.datasets = datasets;
+        ctx.update();
+      } else if (arrng == "2D") {
+        ctx.data.datasets[0].data = numbers[0];
+        ctx.data.datasets[1].data = numbers[1];
+        ctx.data.datasets[2].data = numbers[2];
+        ctx.data.datasets[3].data = numbers[3];
+        ctx.update();
+      }
+    }
+    const datepicker_init = (suffix,kw,chart) => {
+      if (suffix == "bulanan") {
+        $("#firstdate"+suffix).datepicker({
+            changeYear: true,
+            dateFormat: 'yy',
+            yearRange: '-115:+95M',
+            onClose: function(dateText,inst) { 
+                let year = $("#ui-datepicker-div .ui-datepicker-year :selected").val();
+                $(this).datepicker('setDate',new Date(year, 1));
+            }
+        });
+        $("#firstdate"+suffix).focus(() => {
+          $(".ui-datepicker-month").hide();
+          $(".ui-datepicker-calendar").hide();
+        });
+        $('#filter'+suffix).click(async function() {
+          let year = $(this).prevAll().eq(0).val();
+          if (year != '') {
+            fromdate = moment("01-01-"+year,'DD-MM-YYYY');
+            todate = moment("31-12-"+year,'DD-MM-YYYY');
+            let datasets_label = ['Rampasan','Kes','Tangkapan','LLPK'];
+            let [rawramp_months_counter,rawkes_months_counter,rawtang_months_counter,lppk_months_counter] = await get_multi_counters(datasets_label,fromdate,todate);
+            chart_updater("",[rawramp_months_counter,rawkes_months_counter,rawtang_months_counter,lppk_months_counter],chart,"2D");
+            alert("Carta telah dikemas kini!");
+          } else {
+            alert("Sila masukkan input tarikh!");
+          }
+        });
+      } else {
+        $("#firstdate"+suffix).datepicker({
+            changeMonth: true,
+            changeYear: true,
+            dateFormat: 'dd/mm/yy',
+            yearRange: '-115:+95M',
+            onSelect: function(dateText) {
+              $("#lastdate"+suffix).datepicker("option", "minDate", dateText);
+            }
+        });
+        $("#lastdate"+suffix).datepicker({
+            changeMonth: true,
+            changeYear: true,
+            dateFormat: 'dd/mm/yy',
+            yearRange: '-115:+95M',
+            onSelect:function(dateText) {
+              $("#firstdate"+suffix).datepicker('option','maxDate',dateText);
+            }
+        });
+        $('#filter'+suffix).click(async function() {
+          let from_date = $(this).prevAll().eq(1).val();
+          let to_date = $(this).prevAll().eq(0).val();
+          if (from_date != '' && to_date != '') {
+            fromdate = moment(from_date,'DD-MM-YYYY');
+            todate = moment(to_date,'DD-MM-YYYY');
+            let [labels,numbers] = await get_labels_numbers(kw,fromdate,todate);
+            if (["Status_Kes","Status_KS"].includes(kw)) {
+              chart_updater(labels,numbers,chart);
+            } else if (kw.includes("BrgRamp")) {
+              chart_updater(labels,numbers,chart,"1D-"+kw.replace("BrgRamp",""));
+            }
+            alert("Carta telah dikemas kini!");
+          } else {
+            alert("Sila masukkan input tarikh!");
+          }
+        });
+      }
+    }
+    const get_colors = (len) => {
+      let colors = [];
+      for (let i = 0; i < len; i++) {
+        let letters = '0123456789ABCDEF'.split('');
+        let color = '#';
+        for (let x = 0; x < 6; x++) {
+          color += letters[Math.floor(Math.random()*16)];
+        }
+        colors.push(color);
+      }
+      return colors;
+    }
+    const percent = (nume,denom) => {
+      let val = Math.round((nume/denom)*100);
+      return `(${val}%)`;
+    }
+    const get_multi_counters = async(labels,fromdate,todate) => {
+      if (fromdate === undefined) {
+        let counters_arr = [];
+        for (let label of labels) {
+          label = "Bulanan-"+label;
+          let counter = await get_labels_numbers(label);
+          counters_arr.push(counter);
+        }
+        return counters_arr;
+      } else {
+        let counters_arr = [];
+        for (let label of labels) {
+          label = "Bulanan-"+label;
+          let counter = await get_labels_numbers(label,fromdate,todate);
+          counters_arr.push(counter);
+        }
+        return counters_arr;      
+      }
+    }
+    const chart_date_data = async (mode,data) => {
+      let datasets_label = ['Rampasan','Kes','Tangkapan','LLPK'];
+      let datasets_colour = get_colors(4);
+      let rawramp_months_counter,rawkes_months_counter,rawtang_months_counter,lppk_months_counter;
+      if (mode == "init" && data !== undefined) {
+        [rawramp_months_counter,rawkes_months_counter,rawtang_months_counter,lppk_months_counter] = data;
+      } else if (mode == "update" && data === undefined) {
+        [rawramp_months_counter,rawkes_months_counter,rawtang_months_counter,lppk_months_counter] = await get_multi_counters(datasets_label);
+      }
+      let date_label = ['Januari', 'Februari', 'Mac', 'April', 'Mei', 'Jun', 'Julai', 'Ogos', 'September', 'Oktober', 'November', 'Disember'];
+      $('#date-chart').html('<canvas id="barChart" style="height: 300px; max-width: 100%;">')
+      let areaChartData = {
+        labels  : date_label,
+        datasets: [
+          {
+            label               : datasets_label[0],
+            backgroundColor     : datasets_colour[0],
+            data                : rawramp_months_counter
+          },
+          {
+            label               : datasets_label[1],
+            backgroundColor     : datasets_colour[1],
+            data                : rawkes_months_counter
+          },
+          {
+            label               : datasets_label[2],
+            backgroundColor     : datasets_colour[2],
+            data                : rawtang_months_counter
+          },
+          {
+            label               : datasets_label[3],
+            backgroundColor     : datasets_colour[3],
+            data                : lppk_months_counter
+          }
+        ]
+      }
+      let barChartCanvas = $('#barChart').get(0).getContext('2d')
+      let barChartData = $.extend(true, {}, areaChartData)  
+      let barChartOptions = {
+        responsive              : true,
+        maintainAspectRatio     : false,
+        datasetFill             : false,
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: (tooltipItem) => {
+                if (tooltipItem.datasetIndex == 3) {
+                  let llpk_val = tooltipItem.parsed.y;
+                  let tangkapan_val = tooltipItem.chart.data.datasets[2].data[tooltipItem.dataIndex];
+                  let llpk_percent = percent(llpk_val,tangkapan_val);
+                  return `${tooltipItem.chart.data.datasets[tooltipItem.datasetIndex].label}: ${tooltipItem.formattedValue} ${llpk_percent}`;
+                } else {
+                  return `${tooltipItem.chart.data.datasets[tooltipItem.datasetIndex].label}: ${tooltipItem.formattedValue}`;
+                }
+              }
+            } 
+          }
+        }
+      }
+      let chart = new Chart(barChartCanvas, {
+        type: 'bar',
+        data: barChartData,
+        options: barChartOptions
+      });
+      $('#bulanan-input').html('<pre>Pilih <input type="text" placeholder="Tahun" id="firstdatebulanan" name="firstdatepicker"> <input type="button" name="filter" id="filterbulanan" value="Saring" class="btn btn-info"></pre>');
+      datepicker_init("bulanan","Bulanan",chart);
+      if (mode == "update" && data === undefined) {
+        window.alert("Carta bulanan telah dikemaskini!");
+        rawramp_months_counter_str = rawramp_months_counter.join(",");
+        rawkes_months_counter_str = rawkes_months_counter.join(",");
+        rawtang_months_counter_str = rawtang_months_counter.join(",");
+        lppk_months_counter_str = lppk_months_counter.join(",");
+        return [rawramp_months_counter_str,rawkes_months_counter_str,rawtang_months_counter_str,lppk_months_counter_str];
+      }
+    }
+    const chart_ks_data = async (mode,data) => {
+      let case_labels,case_numbers;
+      if (mode == "init" && data !== undefined) {
+        [case_labels,case_numbers] = data;
+      } else if (mode == "update" && data === undefined) {
+        [case_labels,case_numbers] = await get_labels_numbers("Status_KS");
+      }
+      $('#statusks-chart').html('<canvas id="pieChart" style="height: 500px; max-width: 100%;"></canvas>');
+      let pieChartCanvas = $('#pieChart').get(0).getContext('2d');
+      let pieData = {
+        labels: case_labels,
+        datasets: [
+          {
+            data: case_numbers,
+            backgroundColor : get_colors(case_numbers.length),
+          }
+        ]
+      }
+      let pieOptions     = {
+        maintainAspectRatio : false,
+        responsive : true,
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: (tooltipItem) => {
+                let ks_percent = percent(tooltipItem.parsed,tooltipItem.dataset.data.reduce((acc_val,curr_val)=>acc_val+curr_val, 0));
+                return `${tooltipItem.label}: ${tooltipItem.formattedValue} ${ks_percent}`;
+              }
+            } 
+          }
+        }
+      }
+      let chart = new Chart(pieChartCanvas, {
+        type: 'pie',
+        data: pieData,
+        options: pieOptions
+      });
+      $('#statusks-input').html('<pre>Daripada <input type="text" placeholder="Tarikh Mula" id="firstdateks" name="firstdatepicker"> hingga <input type="text" placeholder="Tarikh Akhir" id="lastdateks" name="lastdatepicker"> <input type="button" name="filter" id="filterks" value="Saring" class="btn btn-info"></pre>');
+      datepicker_init("ks","Status_KS",chart);
+      if (mode == "update" && data === undefined) {
+        window.alert("Carta status kertas siasatan telah dikemaskini!");
+        case_labels_str = case_labels.join("|");
+        case_numbers_str = case_numbers.join(",");
+        return [case_labels_str,case_numbers_str];
+      }
+    }
+    const chart_kes_data = async (mode,data) => {
+      let case_labels,case_numbers;
+      if (mode == "init" && data !== undefined) {
+        [case_labels,case_numbers] = data;
+      } else if (mode == "update" && data === undefined) {
+        [case_labels,case_numbers] = await get_labels_numbers("Status_Kes");
+      }
+      $('#statuskes-chart').html('<canvas id="pieChartkes" style="height: 300px; max-width: 100%;"></canvas>');
+      let pieChartCanvas = $('#pieChartkes').get(0).getContext('2d');
+      let pieData = {
+        labels: case_labels,
+        datasets: [
+          {
+            data: case_numbers,
+            backgroundColor : get_colors(case_numbers.length),
+          }
+        ]
+      }
+      let pieOptions     = {
+        maintainAspectRatio : false,
+        responsive : true,
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: (tooltipItem) => {
+                let kes_percent = percent(tooltipItem.parsed,tooltipItem.dataset.data.reduce((acc_val,curr_val)=>acc_val+curr_val, 0));
+                return `${tooltipItem.label}: ${tooltipItem.formattedValue} ${kes_percent}`;
+              }
+            } 
+          }
+        }
+      }
+      let chart = new Chart(pieChartCanvas, {
+        type: 'pie',
+        data: pieData,
+        options: pieOptions
+      });
+      $('#statusk-input').html('<pre>Daripada <input type="text" placeholder="Tarikh Mula" id="firstdatekes" name="firstdatepicker"> hingga <input type="text" placeholder="Tarikh Akhir" id="lastdatekes" name="lastdatepicker"> <input type="button" name="filter" id="filterkes" value="Saring" class="btn btn-info"></pre>');
+      datepicker_init("kes","Status_Kes",chart);
+      if (mode == "update" && data === undefined) {
+        window.alert("Carta status kes telah dikemaskini!");
+        case_labels_str = case_labels.join(",");
+        case_numbers_str = case_numbers.join(",");
+        return [case_labels_str,case_numbers_str];
+      }
+    }
+    const chart_rampasan_data = async (mode,data) => {
+      let rampasan_labels,rampasan_numbers;
+      if (mode == "init" && data !== undefined) {
+        [rampasan_labels,rampasan_numbers] = data;
+      } else if (mode == "update" && data === undefined) {
+        [rampasan_labels,rampasan_numbers] = await get_labels_numbers("BrgRamp");
+      }
+      let rampasan_colours = get_colors(rampasan_labels.length);
+      let kw = ["gram","liter","pokok","keping"];
+      let units_str = [];
+      kw.forEach( (e) => {
+        $('#rampasan'+e+'-chart').html('<canvas id="barChartrampasan'+e+'" style="height: 300px; max-width: 100%;"></canvas>');
+        let barChartCanvas = $('#barChartrampasan'+e).get(0).getContext('2d');
+        let [labels,datasets] = gen_datasets(rampasan_labels,rampasan_numbers,rampasan_colours,e);
+        let ls = [];
+        const add_unit = (str) => {
+          let unit = `${str}:${e}`;
+          return unit;
+        }
+        labels.forEach((e)=>{
+          let l = add_unit(e);
+          ls.push(l);
+        });
+        let labels_str = ls.join(",");
+        let nos = [];
+        datasets.forEach( (e,i) => {
+          let no = e.data[i];
+          nos.push(no);
+        });
+        let nos_str = nos.join(",");
+        units_str.push(labels_str,nos_str);
+        let barChartData = {
+          labels: labels,
+          datasets: datasets
+        }
+        let barChartOptions = {
+          responsive : true,
+          scales: {
+              x: {
+                  stacked: true
+              },
+              y: {
+                  stacked: true
+              }
+          },
+          plugins: {
+            tooltip: {
+              filter: (tooltipItem) => tooltipItem.raw > 0,
+              callbacks: {
+                label: (tooltipItem) => {
+                  let nume = tooltipItem.parsed.y;
+                  let denom = 0;
+                  let datasets = tooltipItem.chart.data.datasets;
+                  datasets.forEach((e) => {
+                    let sum = e.data.reduce((acc_val,curr_val)=>acc_val+curr_val,0);
+                    denom += sum;
+                  });
+                  let ramp_percent = percent(nume,denom);
+                  return `${tooltipItem.formattedValue} ${ramp_percent}`;
+                }
+              }
+            }           
+          }
+        }
+        let chart = new Chart(barChartCanvas, {
+          type: 'bar',
+          data: barChartData,
+          options: barChartOptions
+        });
+        $('#rampasan'+e+'-input').html('<pre>Daripada <input type="text" placeholder="Tarikh Mula" id="firstdateramp'+e+'" name="firstdatepicker">&nbsp;hingga&nbsp;<input type="text" placeholder="Tarikh Akhir" id="lastdateramp'+e+'" name="lastdatepicker">&nbsp;<input type="button" name="filter" id="filterramp'+e+'" value="Saring" class="btn btn-info"></pre>');
+        datepicker_init("ramp"+e,"BrgRamp"+e,chart);
+        if (mode == "update" && data === undefined) {
+          window.alert(`Carta barang rampasan dalam ${e} telah dikemaskini!`);
+        }
+      });
+      return units_str; 
+    }
+    const init_charts = async (data_arr) => {
+      let raws = await data_arr;
+      const str_to_arr_strs = (str,delim = ",") => {
+        let arr = str.split(delim);
+        return arr;
+      } 
+      const str_to_arr_ints = (str) => {
+        let arr = str.split(',');
+        arr.forEach( (e,i) => {
+          arr[i] = parseInt(e,10);
+        });
+        return arr;
+      }
+      const str_to_arr_floats = (str) => {
+        let arr = str.split(',');
+        arr.forEach( (e,i) => {
+          arr[i] = parseFloat(e);
+        });
+        return arr;
+      }
+      if (raws.length != 0) {
+        let data = raws[0];
+        let monthly_data = [str_to_arr_ints(data.rawramp_months_counter),str_to_arr_ints(data.rawkes_months_counter),str_to_arr_ints(data.rawtang_months_counter),str_to_arr_ints(data.lppk_months_counter)];
+        chart_date_data("init",monthly_data);
+        let ks_data = [str_to_arr_strs(data.case_paper_labels,"|"),str_to_arr_ints(data.case_paper_numbers)];
+        chart_ks_data("init",ks_data);
+        let kes_data = [str_to_arr_strs(data.case_labels),str_to_arr_ints(data.case_numbers)];
+        chart_kes_data("init",kes_data);
+        let rampasan_labels = [...str_to_arr_strs(data.rampasan_gram_labels),...str_to_arr_strs(data.rampasan_liter_labels),...str_to_arr_strs(data.rampasan_pokok_labels),...str_to_arr_strs(data.rampasan_keping_labels)];
+        let rampasan_nos = [...str_to_arr_floats(data.rampasan_gram_numbers),...str_to_arr_floats(data.rampasan_liter_numbers),...str_to_arr_floats(data.rampasan_pokok_numbers),...str_to_arr_floats(data.rampasan_keping_numbers)];
+        chart_rampasan_data("init",[rampasan_labels,rampasan_nos]);
+      }
+    }
+    const post_raws = async (arg1,arg2,arg3,arg4) => {
+      let [ramp_months,kes_months,tang_months,lppk_months] = await arg1;
+      let [ks_labels,ks_numbers] = await arg2;
+      let [kes_labels,kes_numbers] = await arg3;
+      let [gram_label,gram_no,liter_label,liter_no,pokok_label,pokok_no,keping_label,keping_no] = await arg4;
+      let data = {
+        "rawramp_months_counter" : ramp_months,
+        "rawkes_months_counter" : kes_months,
+        "rawtang_months_counter" : tang_months,
+        "lppk_months_counter" : lppk_months,
+        "case_paper_labels" : ks_labels,
+        "case_paper_numbers" : ks_numbers,
+        "case_labels" : kes_labels,
+        "case_numbers" : kes_numbers,
+        "rampasan_gram_labels" : gram_label,
+        "rampasan_gram_numbers" : gram_no,
+        "rampasan_liter_labels" : liter_label,
+        "rampasan_liter_numbers" : liter_no,
+        "rampasan_pokok_labels" : pokok_label,
+        "rampasan_pokok_numbers" : pokok_no,
+        "rampasan_keping_labels" : keping_label,
+        "rampasan_keping_numbers" : keping_no
+      };
+      /*
+      $.post("{% url 'app:chartrawlist' %}",data).then(res => ).catch(err => ); # save data via ajax post method
+      */
+      fetch("{% url 'app:chartrawlist' %}", {
+        method: "POST",
+        headers: {
+          'Content-Type': 'application/json',
+          "X-CSRFToken": '{{csrf_token}}'
+        },
+        credentials: "include",
+        body: JSON.stringify(data)
+      }).then(res => window.alert("Data carta terkini telah disimpan di dalam pangkalan data!")).catch(err => {
+        window.alert(err);
+        window.alert("Data carta terkini gagal disimpan di dalam pangkalan data!");
+      });
+    }
+    const chartraw_data = get_iter("chartraw");
+    init_charts(chartraw_data);
+    const rawtang_data = get_iter("rawtang");
+    const rawkes_data = get_iter("rawkes");
+    const rawramp_data = get_iter("rawramp");
+    const tables = [rawtang_data,rawkes_data,rawramp_data];
+    const date_strs = chart_date_data("update");
+    const ks_strs = chart_ks_data("update");
+    const kes_strs = chart_kes_data("update");
+    const unit_strs = chart_rampasan_data("update");
+    post_raws(date_strs, ks_strs, kes_strs, unit_strs);
+  })
+</script>

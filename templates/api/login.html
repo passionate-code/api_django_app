@@ -1,0 +1,31 @@
+{% extends "app/base.html" %}
+{% block title %}Log Masuk{% endblock %}
+{% block styling %}
+  <style type="text/css">
+  </style>
+{% endblock %}
+{% load crispy_forms_tags %}
+{% block messages %}
+<div class="d-flex align-items-center justify-content-center">
+{% if messages %}
+{% for message in messages %}
+    <br/>
+        <div class="alert {{ message.tags }}" role="alert"><strong>{{ message }}</strong></div>
+    <br/>
+{% endfor %}
+{% endif %}
+</div>
+{% endblock %}
+{% block content %}
+<div class="container py-5">
+  <h1>Log Masuk</h1>
+  <form method="POST">
+    {% csrf_token %}
+    {{ login_form|crispy }}
+    <button class="btn btn-primary" type="submit">Log Masuk</button>
+  </form>
+  <br/>
+  <p class="text-center">Anda belum mendaftar? <a href="{% url 'app:register' %}">Sila daftar di sini</a>.</p>
+  <p class="text-center">Lupa kata laluan? <a href="{% url 'app:reset' %}">Buat kata laluan baharu</a>.</p>
+</div>
+{% endblock %}

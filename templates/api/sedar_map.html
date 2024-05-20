@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Peta SEDAR</title>
+
+    <!-- leaflet css  -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet.locatecontrol@v0.74.0/dist/L.Control.Locate.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/leaflet.locatecontrol@v0.74.0/dist/L.Control.Locate.min.js" charset="utf-8"></script>
+
+     <!-- Bootstrap CSS (for the modal) -->
+     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+
+     <!--bootstrap js for modal-->
+     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+    <!--Bootstrap -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css"> 
+	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
+
+    <!--icon-->
+    <script src="https://kit.fontawesome.com/fe6c4b0a59.js" crossorigin="anonymous"></script>
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        #map {
+            width: 100%;
+            height: 100vh;
+        }
+
+        .modal-backdrop{
+          background-color: transparent;
+        }
+
+        .leaflet-control-locate a.leaflet-bar-part div {
+	        background-position: center;
+	        background-repeat: no-repeat;
+	        width: 30px;
+	        height: 30px;
+        }
+
+        .leaflet-control-locate a.leaflet-bar-part div.locate {
+	        background-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" height="1.2em" viewBox="0 0 512 512"%3E%3Cpath d="M256 0c17.7 0 32 14.3 32 32V66.7C368.4 80.1 431.9 143.6 445.3 224H480c17.7 0 32 14.3 32 32s-14.3 32-32 32H445.3C431.9 368.4 368.4 431.9 288 445.3V480c0 17.7-14.3 32-32 32s-32-14.3-32-32V445.3C143.6 431.9 80.1 368.4 66.7 288H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H66.7C80.1 143.6 143.6 80.1 224 66.7V32c0-17.7 14.3-32 32-32zM128 256a128 128 0 1 0 256 0 128 128 0 1 0 -256 0zm128-80a80 80 0 1 1 0 160 80 80 0 1 1 0-160z"/%3E%3C/svg%3E')
+        }
+
+      
+    </style>
+</head>
+
+<body>
+    <div id="map"></div>
+
+{% csrf_token %}
+<!-- Modal -->
+<div class="modal" tabindex="-1" role="dialog" id="coordinateModal">
+    <!-- Modal content -->
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Koordinat</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close" >
+                  <span aria-hidden="true">&times;</span>
+                </button>
+              </div>
+            <div class="modal-body" id="coordinateBody">
+                <!-- Coordinates will be displayed here -->
+                <p id="coordinates"></p>
+                <div class="form-group">
+                    <p>Aktivti disyaki berlaku di kawasan ini: </p>
+        
+        
+                    <input type="checkbox" class="btn-check" name="activity" id="aktivitiCheckbox" value="aktiviti-jenayah-dadah" autocomplete="off" checked>
+                    <label class="btn btn-outline-primary" for="aktivitiCheckbox">Aktiviti jenayah dadah</label>
+            
+                    <input type="checkbox" class="btn-check" name="activity" id="penagihanCheckbox"  value="penagihan-dadah"  autocomplete="off">
+                    <label class="btn btn-outline-primary" for="penagihanCheckbox">Penagihan dadah</label>
+            
+                    <input type="checkbox" class="btn-check" name="activity" id="pengedaranCheckbox"  value="pengedaran-dadah" autocomplete="off">
+                    <label class="btn btn-outline-primary" for="pengedaranCheckbox">Pengedaran dadah</label>
+            
+                    <input type="checkbox" class="btn-check" name="activity" id="makmalCheckbox"  value="makmal-haram" autocomplete="off">
+                    <label class="btn btn-outline-primary" for="makmalCheckbox">Makmal dadah haram </label>
+                    
+                    <input type="checkbox" class="btn-check" name="activity" id="lainCheckbox" value="lain-lain" autocomplete="off">
+                    <label class="btn btn-outline-primary" for="lainCheckbox">Lain-lain jenayah</label>
+                    
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-primary" id="submitBtn">Lapor</button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Tutup</button>
+              </div> 
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
+
+<!-- leaflet js  -->
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet.locatecontrol@0.74.0/dist/L.Control.Locate.min.js" charset="utf-8"></script>
+
+<!-- modal js -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+
+<script>
+
+    $(document).ready(function(){
+        var map = L.map('map').setView([3.1319, 102.6841], 8);
+
+    //osm layer
+    /*var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    });
+    osm.addTo(map); */
+
+    //google layer
+    googleStreets = L.tileLayer('http://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+        maxZoom: 19,
+        subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+    });
+    googleStreets.addTo(map);
+
+     //change location control position from topleft to topright
+    map.zoomControl.setPosition('topright');
+    
+    //current location control
+   // L.control.locate().addTo(map);
+
+    //change locate icon 
+    const lc = L.control.locate({
+	icon: 'locate',
+	iconLoading: 'loading',
+	iconElementTag: 'div',
+    position: 'topright',
+    showPopup: false,
+    strings: {
+      title: "Lokasi semasa"
+    },
+   
+}).addTo(map);
+
+  
+    var holdTimer;
+    var holdDelay = 500; // Time in milliseconds to consider as a hold event
+
+    map.on('mousedown', function(e) {
+        holdTimer = setTimeout(function() {
+            handleMapClick(e.latlng);
+        }, holdDelay);
+    });
+
+    map.on('mouseup', function() {
+        clearTimeout(holdTimer);
+    });
+
+    map.on('dblclick', function(e) {
+        clearTimeout(holdTimer);
+        handleMapClick(e.latlng);
+    });
+
+    map.on('mousemove', function() {
+        clearTimeout(holdTimer);
+    });
+
+    map.on('mouseout', function() {
+        clearTimeout(holdTimer);
+    });
+
+    function handleMapClick(latlng) {
+                var lat = latlng.lat;
+                var lng = latlng.lng;
+
+                // Display coordinates in the modal
+                var modalContent = "Latitude: " + lat + "<br>Longitude: " + lng;
+                $("#coordinates").html(modalContent);
+                $("#coordinateModal").modal("show");
+
+                // Handle activity selection
+                $("#submitBtn").click(function () {
+                    var selectedActivities = [];
+
+                    // Check each checkbox and add selected activities to the array
+                    if ($("#aktivitiCheckbox").prop("checked")) {
+                        selectedActivities.push("aktiviti-jenayah-dadah");
+                    }
+                    if ($("#penagihanCheckbox").prop("checked")) {
+                        selectedActivities.push("penagihan-dadah");
+                    }
+                    if ($("#pengedaranCheckbox").prop("checked")) {
+                        selectedActivities.push("pengedaran-dadah");
+                    }
+                    if ($("#makmalCheckbox").prop("checked")) {
+                        selectedActivities.push("makmal-haram");
+                    }
+                    if ($("#lainCheckbox").prop("checked")) {
+                        selectedActivities.push("lain-lain");
+                    }
+                    const data = {
+                            'lat': lat,
+                            'lng': lng,
+                            'activities': selectedActivities,
+                            'csrfmiddlewaretoken': '{{ csrf_token }}'  // Include CSRF token
+                        };
+                    // Send coordinates and selected activities to the server using AJAX
+                    $.ajax({
+                        url: "{% url 'app:geotag' %}",
+                        type: 'POST',
+                        data: data,
+                        dataType: 'json',
+                        success: function (data) {
+                            alert('Laporan bagi koordinat: ' + lat + ', ' + lng + ' diterima');
+                            console.log(data);
+                        },
+                        error: function (xhr, status, error) {
+                            console.log(xhr.responseText);                      
+                        }
+                    });
+                });
+            }
+
+  
+});
+</script>

@@ -1,0 +1,203 @@
+{% extends "app/base.html" %}
+{% block title %}Jadual{% endblock %}
+{% block script %}
+<script src="https://code.jquery.com/jquery-3.7.0.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/scroller/2.2.0/js/dataTables.scroller.min.js"></script>
+<link href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" rel="stylesheet" type="text/css" />
+<link href="https://cdn.datatables.net/scroller/2.2.0/css/scroller.dataTables.min.css" rel="stylesheet" type="text/css" />
+<script src="https://cdn.datatables.net/buttons/2.1.0/js/dataTables.buttons.min.js" type="text/javascript"></script>
+<script src="https://cdn.datatables.net/buttons/2.1.0/js/buttons.html5.min.js" type="text/javascript"></script>
+<script src="https://cdn.datatables.net/buttons/2.1.0/js/buttons.print.min.js" type="text/javascript"></script>
+<link href="https://cdn.datatables.net/buttons/2.1.0/css/buttons.dataTables.min.css" rel="stylesheet" type="text/css" />
+<script src="https://rawgit.com/moment/moment/2.2.1/min/moment.min.js"></script>
+{% endblock %}
+{% block styling %}
+<style type="text/css">
+pre {
+  width: 900px;
+  border: 0;
+  background-color: transparent;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 10pt;
+}
+</style>
+{% endblock %}
+{% block messages %}
+<div class="d-flex align-items-center justify-content-center">
+{% if messages %}
+{% for message in messages %}
+        <div class="alert {{ message.tags }}" role="alert"><strong>{{ message }}</strong></div>
+{% endfor %}
+{% endif %}
+</div>
+{% endblock %}
+{% block content %}
+{% load static %}
+{% load app_extras %}
+<pre>Untuk menyimpan data tersebut, dua pilihan telah disediakan:<br/>
+1. Hanya memuat turun rekod yang dipaparkan sebagai fail CSV<br/>
+2. Memuat turun kesemua rekod sebagai fail CSV<br/>
+</pre>
+{% if request.user|has_group:"MFRLab" %}
+<table id='rawramp_table' class='display text-center'>
+  <thead>
+    <tr>
+    </tr>
+  </thead>
+  <tbody>
+  </tbody>
+  <tfoot>
+    <tr>
+    </tr>
+  </tfoot>
+</table>
+<script type="text/javascript">
+$(document).ready(() => {
+    $('#rawramp_table thead th').each( function () {
+        let title = $('#rawramp_table tfoot th').eq($(this).index()).text();
+        $(this).html('<div class="display text-center";><input type="text"; class="display text-center"; placeholder="Cari '+title+' ";></div>');
+    });
+    let table = $('#rawramp_table').DataTable( {
+    serverSide: true,
+    sAjaxSource: "{% url 'app:serverside' 'rawramp' 'off' %}",
+    columns: [
+        { data: 0, render:
+          function ( data, type, row ) {
+            let pk = row[0];
+            data = "<a href='{% url 'app:table' 'rawramp' %}?action=del&pk="+pk+"'>"+pk+"</a>";
+            return data;
+          }        
+        },
+        { data: 1 },
+        { data: 2 },
+        { data: 3 },
+        { data: 4 },
+        { data: 5 },
+        { data: 6 },
+        { data: 7 },
+        { data: 8 },
+        { data: 9 },
+        { data: 10 },
+        { data: 11 },
+        { data: 12 },
+        { data: 13 },
+        { data: 14 },
+        { data: 15 },
+        { data: 16 },
+        { data: 17 }
+    ],
+    scrollY: 350,
+    scrollX: true,
+    scroller: true,
+    scrollCollapse: true,
+    deferRender: true,
+    dom: 'Bfrtip',
+    buttons: [
+        {
+            extend: 'csv',
+            text: 'CSV - HANYA REKOD YANG DIPAPARKAN',
+            exportOptions: {
+                columns: [ 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17 ],
+                orthogonal: 'export',
+                stripHtml: true
+            }
+        },
+        {
+            text: 'CSV - KESEMUA REKOD',
+            action: function ( e, dt, node, config ) {
+                window.location = "{% url 'app:download' 'rawramp'%}";
+            }
+        }
+    ]
+    });
+    table.columns().eq(0).each(function(idx) {
+        $('input',table.column(idx).header()).on('input',function() {
+            table.column(idx).search(this.value).draw();
+        });
+    });
+});
+</script>
+{% else %}
+<table id='rawramp_table' class='display text-center'>
+  <thead>
+    <tr>
+    </tr>
+  </thead>
+  <tbody>
+  </tbody>
+  <tfoot>
+    <tr>
+    </tr>
+  </tfoot>
+</table>
+<script type="text/javascript">
+$(document).ready(() => {
+    $('#rawramp_table thead th').each( function () {
+        let title = $('#rawramp_table tfoot th').eq($(this).index()).text();
+        $(this).html('<div class="display text-center";><input type="text"; class="display text-center"; placeholder="Cari '+title+' ";></div>');
+    });
+    let table = $('#rawramp_table').DataTable( {
+    serverSide: true,
+    sAjaxSource: "{% url 'app:serverside' 'rawramp' 'on' %}",
+    columns: [
+        { data: 0 },
+        { data: 1 },{# data: Rawkes.No_KS #}
+        { data: 2 },
+        { data: 3 , render:
+          function ( data, type, row ) {
+            let timestamp = row[3];
+            if (timestamp != null) { //to deal with null date for rawtang LLPK record
+              data = moment(timestamp,'YYYY-MM-DD').format('YYYY-MM-DD');
+            } else {
+              data = timestamp;
+            }
+            return data;
+          }
+        },
+        { data: 4 },
+        { data: 5 },
+        { data: 6 },
+        { data: 7 },
+        { data: 8 },
+        { data: 9 },
+        { data: 10 },
+        { data: 11 },
+        { data: 12 },
+        { data: 13 },
+        { data: 14 },
+        { data: 15 }
+    ],
+    scrollY: 350,
+    scrollX: true,
+    scroller: true,
+    scrollCollapse: true,
+    deferRender: true,
+    dom: 'Bfrtip',
+    buttons: [
+        {
+            extend: 'csv',
+            text: 'CSV - HANYA REKOD YANG DIPAPARKAN',
+            exportOptions: {
+                columns: [ 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16 ],
+                orthogonal: 'export',
+                stripHtml: true
+            }
+        },
+        {
+            text: 'CSV - KESEMUA REKOD',
+            action: function ( e, dt, node, config ) {
+                window.location = "{% url 'app:download' 'rawramp'%}";
+            }
+        }
+    ]
+    });
+    table.columns().eq(0).each(function(idx) {
+        $('input',table.column(idx).header()).on('input',function() {
+            table.column(idx).search(this.value).draw();
+        });
+    });
+});
+</script>
+{% endif %}
+{% endblock %}

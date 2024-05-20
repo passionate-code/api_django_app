@@ -1,0 +1,35 @@
+{% extends "app/base.html" %}
+{% block title %}Register{% endblock %}
+{% block styling %}
+  <style type="text/css">
+  </style>
+{% endblock %}
+{% load crispy_forms_tags %}
+{% block messages %}
+<div class="d-flex align-items-center justify-content-center">
+{% if messages %}
+{% for message in messages %}
+    <br/>
+        <div class="alert {{ message.tags }}" role="alert"><strong>
+        {% if "success" in message.tags %}
+        Success:
+        {% elif "warning" in message.tags %}
+        Warning:
+        {% endif %}
+       {{ message }}</strong></div>
+    <br/>
+{% endfor %}
+{% endif %}
+</div>
+{% endblock %}
+{% block content %}         
+  <div class="container py-5">
+  	<h1>Register</h1>
+  	<form method="POST">
+  		{% csrf_token %}
+  		{{ register_form|crispy }}                    
+  		<button class="btn btn-primary" type="submit">Register</button>
+  	</form>
+  	<p class="text-center">Already have an account? Please <a href="{% url 'app:login' %}">login</a>.</p>
+  </div>
+{% endblock %}
